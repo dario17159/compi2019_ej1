@@ -350,7 +350,9 @@ public class Scanner {
             t.str = t.str+ch;
             NextCh();
         }
-        if (esPalabraClave(t.str))
+        if(t.str[t.str.Length-1].Equals('_')){
+                Parser.Errors.Error("Error en el identificador '"+t.str+"' - No puede finalizar con '_'");
+        } else if (esPalabraClave(t.str))
             switch (t.str)
             {
                 case "break":
