@@ -345,12 +345,15 @@ public class Scanner {
     }
     static void ReadName(Token t)
     {
-        while ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_')
+        while ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_' || (ch >= '0' && ch <= '9'))
         {
             t.str = t.str+ch;
             NextCh();
-        }
-        if (esPalabraClave(t.str))
+        } 
+        if(t.str[t.str.Length - 1].Equals('_'))
+        {
+            Parser.Errors.Error("No es posible finalizar un identificador con un '_'");
+        } else if (esPalabraClave(t.str))
             switch (t.str)
             {
                 case "break":
