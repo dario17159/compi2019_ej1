@@ -176,7 +176,7 @@ namespace at.jku.ssw.cc
             Program1.form1.richTextBox7.Select(Program1.form1.richTextBox7.GetFirstCharIndexFromLine(linea)
                                                                        + col,
                                                sizeToken);
-            Program1.form1.richTextBox7.SelectionColor = System.Drawing.Color.Black;
+            Program1.form1.richTextBox7.SelectionColor = System.Drawing.Color.Purple;
             Program1.form1.richTextBox7.SelectionFont =
                      new Font(Program1.form1.richTextBox7.Font.FontFamily,
                               Program1.form1.richTextBox7.Font.Size, FontStyle.Regular);

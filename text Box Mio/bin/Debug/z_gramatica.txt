@@ -1,4 +1,4 @@
- 0.Program = "class" ident PosDeclars "{" MethodDeclsOpc "}".
+ 0.Program = "class" ident "{" PosDeclars MethodDeclsOpc "}".
  1.PosDeclars =  .| Declaration  PosDeclars.
  2.Declaration = ConstDecl | VarDecl | ClassDecl.
  3.MethodDeclsOpc = . | MethodDecl MethodDeclsOpc.
