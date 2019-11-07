@@ -3,6 +3,7 @@ using System.Collections;
 using System.IO;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Windows.Forms;
 //using at.jku.ssw.cc.tests;
 using text_Box_Mio;
 //using compilador;
@@ -168,12 +169,19 @@ namespace at.jku.ssw.cc
 
         static void ParteFinal1()
         {
-            Type ptType1 = Code.program.CreateType();
-            object ptInstance1 = Activator.CreateInstance(ptType1, new object[0]);
-            ptType1.InvokeMember("Main", BindingFlags.InvokeMethod, null, ptInstance1, new object[0]);
-            Code.assembly.Save("Piripipi" + ".exe");
+            try
+            {
+                Type ptType1 = Code.program.CreateType();
+                object ptInstance1 = Activator.CreateInstance(ptType1, new object[0]);
+                ptType1.InvokeMember("Main", BindingFlags.InvokeMethod, null, ptInstance1, new object[0]);
+                Code.assembly.Save("Piripipi" + ".exe");
 
-            if (ZZ.readKey) Console.ReadKey();
+                if (ZZ.readKey) Console.ReadKey();
+            } catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+            
         }//Fin ParteFinal1
 
         static void ReadKeyMio()
@@ -250,87 +258,22 @@ namespace at.jku.ssw.cc
             //hasta q venga una "{"
             //"Program = 'class' ident PosDeclars '{' MethodDeclsOpc '}'."
             //Ya reconoció ident, ahora va a reconocer PosDeclars
-            System.Windows.Forms.TreeNode bracket = new System.Windows.Forms.TreeNode("{");
+            //declaraciones
+            TreeNode bracket = new TreeNode("{");
             program.Nodes.Add("'{'");
             Parser.MessageBoxCon3Preg();
             Check(Token.LBRACE);
             Code.Colorear("token");
             //Code.seleccLaProdEnLaGram(0);
-            
-            System.Windows.Forms.TreeNode posDeclars = new System.Windows.Forms.TreeNode("PosDeclars");
-            program.Nodes.Add(posDeclars);  //Cuelga un TreeNode porque PosDeclars es No Terminal
-            Parser.MessageBoxCon3Preg();
-            Code.seleccLaProdEnLaGram(1);  //"PosDeclars = . | Declaration PosDeclars.";
-            Parser.MessageBoxCon3Preg();
-            bool existeDecl = false;
-            //"Declaration = ConstDecl | VarDecl | ClassDecl."
-            while (la != Token.VOID && la != Token.EOF) //Si no existen declaraciones, la = Token.LBRACE
-            {
-                Code.Colorear("latoken"); //si existiera una declaracion, as "int i", colorea "int";  (yaPintado = true)
-                //El argumento "false" => que no debe pintar el "token" (que en este caso seria "ProgrPpal"), sino el laToken (que es "int")
-                //en este caso, debe "mirar hacia adelante" (laToken) 
-                //para determinar la opcion de la produccion "PosDeclars = . | Declaration PosDeclars."    
-                //Si laToken es "{" => la opcion es "PosDeclars = .", otherwise: "PosDeclars = Declaration PosDeclars."
-                Code.seleccLaProdEnLaGram(2);
-                System.Windows.Forms.TreeNode hijodeclar = new System.Windows.Forms.TreeNode("Declaration = ConstDecl | VarDecl | ClassDecl.");
-                posDeclars.Nodes.Add(hijodeclar); existeDecl = true;
-                switch (la)
-                {
-                    case Token.CONST:
-                        {
-                            ConstDecl(hijodeclar);
-                            break;
-                        }
-                    case Token.IDENT:  //Type ident..
-                        {
-                            Code.cargaProgDeLaGram("Declaration = VarDecl.");
-                            System.Windows.Forms.TreeNode hijo1 = new System.Windows.Forms.TreeNode("Declaration = VarDecl.");
-                            hijodeclar.Nodes.Add(hijo1);
-                            Code.seleccLaProdEnLaGram(6);
-                            Code.cargaProgDeLaGram("VarDecl = Type  ident IdentifiersOpc ';'.");
-                            Code.seleccLaProdEnLaGram(12);
-                            Code.cargaProgDeLaGram("Type = ident LbrackOpc."); //ya pintó el ident (por ej "int en int ii);
-                            VardDecl(Symbol.Kinds.Global, hijo1); //En program  //Table val;
-                            break;
-                        }
-                    case Token.CLASS:
-                        {
-                            ClassDecl();/*No se encuentra la gramatica para implementar declaracione de clases" */
-                            break;
-                        }
-                    default:
-                        {
-                            token = laToken;
-                            Errors.Error("Se esperaba Const, Tipo, Class");
-                            break;
-                        }
-                }
-                Code.seleccLaProdEnLaGram(1);
-                Code.cargaProgDeLaGram("selccionó la 1 PosDeclars = . | Declaration PosDeclars.");
-            } // Fin del While del la
 
-            Code.Colorear("latoken");
-            //en este caso, debe "mirar hacia adelante" (laToken) 
-            //para determinar la opcion de la produccion "PosDeclars = . | Declaration PosDeclars."    
-            //Si laToken es "{" => la opcion es "PosDeclars = .", otherwise: "PosDeclars = Declaration PosDeclars."
-            if (!existeDecl)
-            {
-                posDeclars.Nodes.Add(".");
-                posDeclars.ExpandAll(); //Visualiza (Expande) posDeclars
-                Parser.MessageBoxCon3Preg();
-            }
-            if (ZZ.parser)
-            {
-                Console.WriteLine("Terminó con todas las declaraciones");
-                Console.WriteLine("//el topScope queda apuntando a --> const size, class Table (con int[] pos y int[] neg), Table val");
-            };
-            if (ZZ.parser)
-            {
-                Console.WriteLine("empieza {"); if (ZZ.readKey) Console.ReadKey();
-            }
+            /*
+             * Posibles declaraciones de variables
+             */
+            posiblesDeclaraciones(program);
+            //
             
             Parser.MessageBoxCon3Preg();
-            System.Windows.Forms.TreeNode methodDeclsOpc = new System.Windows.Forms.TreeNode("MethodDeclsOpc");
+            TreeNode methodDeclsOpc = new TreeNode("MethodDeclsOpc");
             program.Nodes.Add(methodDeclsOpc);
             Parser.MessageBoxCon3Preg();
             Code.seleccLaProdEnLaGram(3);//3.MethodDeclsOpc = . | MethodDecl Meth
@@ -374,11 +317,90 @@ namespace at.jku.ssw.cc
             };
         }//Fin Program
 
-        static void ConstDecl(System.Windows.Forms.TreeNode padre)  /////MALLLL
+        /// <summary>
+        /// Se verifican las posibles declaraciones de variables, con sus respecivas validaciones
+        /// </summary>
+        /// <param name="program"> Recibe el nodo padre para continuar con la representacion del panel derecho del compilador</param>
+        private static void posiblesDeclaraciones(TreeNode program)
         {
-            System.Windows.Forms.TreeNode hijo1 = new System.Windows.Forms.TreeNode("Declaration = ConstDecl.");
+            TreeNode posDeclars = new TreeNode("PosDeclars");
+            program.Nodes.Add(posDeclars);  //Cuelga un TreeNode porque PosDeclars es No Terminal
+            Parser.MessageBoxCon3Preg();
+            Code.seleccLaProdEnLaGram(1);  //"PosDeclars = . | Declaration PosDeclars.";
+            Parser.MessageBoxCon3Preg();
+            bool existeDecl = false;
+            //"Declaration = ConstDecl | VarDecl | ClassDecl."
+            while (la != Token.VOID && la != Token.EOF) //Si no existen declaraciones, la = Token.LBRACE
+            {
+                Code.Colorear("latoken"); //si existiera una declaracion, as "int i", colorea "int";  (yaPintado = true)
+                //El argumento "false" => que no debe pintar el "token" (que en este caso seria "ProgrPpal"), sino el laToken (que es "int")
+                //en este caso, debe "mirar hacia adelante" (laToken) 
+                //para determinar la opcion de la produccion "PosDeclars = . | Declaration PosDeclars."    
+                //Si laToken es "{" => la opcion es "PosDeclars = .", otherwise: "PosDeclars = Declaration PosDeclars."
+                Code.seleccLaProdEnLaGram(2);
+                TreeNode hijodeclar = new TreeNode("Declaration = ConstDecl | VarDecl | ClassDecl.");
+                posDeclars.Nodes.Add(hijodeclar); existeDecl = true;
+                switch (la)
+                {
+                    case Token.CONST:
+                        {
+                            ConstDecl(hijodeclar);
+                            break;
+                        }
+                    case Token.IDENT:  //Type ident..
+                        {
+                            Code.cargaProgDeLaGram("Declaration = VarDecl.");
+                            TreeNode hijo1 = new TreeNode("Declaration = VarDecl.");
+                            hijodeclar.Nodes.Add(hijo1);
+                            Code.seleccLaProdEnLaGram(6);
+                            Code.cargaProgDeLaGram("VarDecl = Type  ident IdentifiersOpc ';'.");
+                            Code.seleccLaProdEnLaGram(12);
+                            Code.cargaProgDeLaGram("Type = ident LbrackOpc."); //ya pintó el ident (por ej "int en int ii);
+                            VardDecl(Symbol.Kinds.Global, hijo1); //En program  //Table val;
+                            break;
+                        }
+                    case Token.CLASS:
+                        {
+                            ClassDecl();/*No se encuentra la gramatica para implementar declaracione de clases" */
+                            break;
+                        }
+                    default:
+                        {
+                            token = laToken;
+                            Errors.Error("Se esperaba Const, Tipo, Class");
+                            break;
+                        }
+                }
+                Code.seleccLaProdEnLaGram(1);
+                Code.cargaProgDeLaGram("selccionó la 1 PosDeclars = . | Declaration PosDeclars.");
+            } // Fin del While del la
+
+            Code.Colorear("latoken");
+            //en este caso, debe "mirar hacia adelante" (laToken) 
+            //para determinar la opcion de la produccion "PosDeclars = . | Declaration PosDeclars."    
+            //Si laToken es "{" => la opcion es "PosDeclars = .", otherwise: "PosDeclars = Declaration PosDeclars."
+            if (!existeDecl)
+            {
+                posDeclars.Nodes.Add(".");
+                posDeclars.ExpandAll(); //Visualiza (Expande) posDeclars
+                Parser.MessageBoxCon3Preg();
+            }
+            if (ZZ.parser)
+            {
+                Console.WriteLine("Terminó con todas las declaraciones");
+                Console.WriteLine("//el topScope queda apuntando a --> const size, class Table (con int[] pos y int[] neg), Table val");
+            };
+            if (ZZ.parser)
+            {
+                Console.WriteLine("empieza {"); if (ZZ.readKey) Console.ReadKey();
+            }
+        }
+
+        static void ConstDecl(TreeNode padre)  /////MALLLL
+        {
+            TreeNode hijo1 = new TreeNode("Declaration = ConstDecl.");
             padre.Nodes.Add(hijo1);
-            System.Windows.Forms.TreeNode hijo2 = new System.Windows.Forms.TreeNode("ConstDecl = 'const' Type ident '=' NumberOrCharConst");
+            TreeNode hijo2 = new TreeNode("ConstDecl = 'const' Type ident '=' NumberOrCharConst");
             hijo1.Nodes.Add(hijo2);
             Check(Token.CONST);  //const int i = 3;
             Code.Colorear("token");
@@ -527,8 +549,8 @@ namespace at.jku.ssw.cc
             Code.seleccLaProdEnLaGram(6);
             padre.Nodes.Add("ident");// Hace referencia a la x
             MessageBoxCon3Preg();
-            Code.Colorear("token"); 
-            System.Windows.Forms.TreeNode hijo2 = new System.Windows.Forms.TreeNode("IdentifiersOpc");
+            Code.Colorear("token");
+            TreeNode hijo2 = new System.Windows.Forms.TreeNode("IdentifiersOpc");
             padre.Nodes.Add(hijo2);
             //-------------------------------------------------Grupo 2 28/9/2015----------------------------------------------------------------------- 
             ////
@@ -614,11 +636,11 @@ namespace at.jku.ssw.cc
         /// G3 PERUMETHODDECL Arreglado los nombres de las variables.
         /// Corregido en PosDeclars ahora aparece '.'
         /// Codigo mas limpio.
-        static void MethodDecl(System.Windows.Forms.TreeNode methodDeclsopc)
+        static void MethodDecl(TreeNode methodDeclsopc)
         {
-            System.Windows.Forms.TreeNode methodDecl = new System.Windows.Forms.TreeNode("MethodDecl"); //cuelga ESTE NODO DESPUES DE pintar el void
+            TreeNode methodDecl = new TreeNode("MethodDecl"); //cuelga ESTE NODO DESPUES DE pintar el void
             Struct type = new Struct(Struct.Kinds.None);
-            System.Windows.Forms.TreeNode typeOrVoid = new System.Windows.Forms.TreeNode("TypeOrVoid"); //Pone por defecto void
+            TreeNode typeOrVoid = new TreeNode("TypeOrVoid"); //Pone por defecto void
             if (la == Token.VOID || la == Token.IDENT)
             {
                 if (la == Token.VOID)
@@ -649,8 +671,8 @@ namespace at.jku.ssw.cc
                     {
                         Type(out type);  //  token = UnTipo laToken = Main
                         Code.Colorear("token");
-                        /////////// Agrega 'Type' al arbol y lo cuelga de typeorvoid
-                        System.Windows.Forms.TreeNode ntype = new System.Windows.Forms.TreeNode("Type");
+                    /////////// Agrega 'Type' al arbol y lo cuelga de typeorvoid
+                    TreeNode ntype = new TreeNode("Type");
                         typeOrVoid.Nodes.Add(ntype);
                         ntype.Nodes.Add("" + type.kind.ToString());
                         ntype.ExpandAll();
@@ -668,7 +690,7 @@ namespace at.jku.ssw.cc
                 Check(Token.LPAR);  //Si Main() => no tiene FormPars
                 Code.Colorear("token");
                 ///// Agrega 'pars' a MethodDecl
-                System.Windows.Forms.TreeNode pars = new System.Windows.Forms.TreeNode("Pars");
+                TreeNode pars = new TreeNode("Pars");
                 methodDecl.Nodes.Add(pars);
                 MessageBoxCon3Preg();
                 Code.seleccLaProdEnLaGram(10);
@@ -692,10 +714,6 @@ namespace at.jku.ssw.cc
                     methodDecl.Nodes.Add("')'");
                     MessageBoxCon3Preg();
                 }
-
-                
-
-
                 
                 //Comienza Block
                 Block(methodDecl);  //Bloque dentro de MethodDecl() 
@@ -711,7 +729,7 @@ namespace at.jku.ssw.cc
             }
         }//Fin MethodDecl
 
-        static void FormPars(System.Windows.Forms.TreeNode padre)//Falta Árbol
+        static void FormPars(TreeNode padre)//Falta Árbol
         {
             Struct type = new Struct(Struct.Kinds.None);
             if (la == Token.IDENT)
@@ -801,6 +819,9 @@ namespace at.jku.ssw.cc
         // G3 PERUSTATEMENT arreglo nombres de variables (padre e hijos) en este metodo.
         // Nodos con palabras reservadas empiezan con n, ej. nodo while: nwhie.
         // O cuando hay varios, ej. varios statements: nstatement, nstatement2.
+        /// <param name="statement"> Es el nodo del arbol de Statement que se construye en el panel derecho del compilador </param>
+        /// <code> Se realiza la verificacion de una sentencia declarada dentro del Z#, realizando las validaciones correspondientes</code>
+        /// <returns> Void </returns>
         static void Statement(System.Windows.Forms.TreeNode statement)
         {
             if (ZZ.ParserStatem) Console.WriteLine("Comienza statement:" + laToken.str);
@@ -891,7 +912,7 @@ namespace at.jku.ssw.cc
                 {
                     case Token.IF:
                         int nroInstrParaRectificarElIf;
-                        Item x; Label end;
+                        Item x; System.Reflection.Emit.Label end;
                         Check(Token.IF);
                         System.Windows.Forms.TreeNode If = new System.Windows.Forms.TreeNode("'if'");
                         statement.Nodes.Add(If);
@@ -968,7 +989,7 @@ namespace at.jku.ssw.cc
                         System.Windows.Forms.TreeNode nwhile = new System.Windows.Forms.TreeNode("'While'");
                         statement.Nodes.Add(nwhile);
                         MessageBoxCon3Preg(statement);
-                        Label top = Code.il.DefineLabel();
+                        System.Reflection.Emit.Label top = Code.il.DefineLabel();
                         int topMio = -1;
                         Code.il.MarkLabel(top);
                         topMio = Parser.nroDeInstrCorriente + 1; //(instr sig a la actual)
@@ -1254,9 +1275,9 @@ namespace at.jku.ssw.cc
 
         /// G3 PERUBLOCK Arreglado el arbol de StatementsOpc cuando esta vacio (".")
         /// Y todos los nombres y padre en Block.
-        static void Block(System.Windows.Forms.TreeNode methodDecl)
+        static void Block(TreeNode methodDecl)
         {
-            System.Windows.Forms.TreeNode block = new System.Windows.Forms.TreeNode("Block");
+            TreeNode block = new TreeNode("Block");
             Code.seleccLaProdEnLaGram(16);
             methodDecl.Nodes.Add(block);
             methodDecl.ExpandAll();
@@ -1264,81 +1285,28 @@ namespace at.jku.ssw.cc
             ////// Agrega '{' al arbol
             Check(Token.LBRACE);
             block.Nodes.Add("'{'");
+            Code.Colorear("token");
             block.ExpandAll();
             MessageBoxCon3Preg(methodDecl);
             Code.Colorear("token");
 
 
+            //Prueba de Codigo
+            Code.CreateMetadata(curMethod);
+            declaracionesSentenciasOpcionales(block);
 
+            //Fin de prueba
 
-            //Comienza Nodo Declaration.
-            System.Windows.Forms.TreeNode posDeclars = new System.Windows.Forms.TreeNode("PosDeclars");
-            methodDecl.Nodes.Add(posDeclars);
             MessageBoxCon3Preg();
-            Code.seleccLaProdEnLaGram(1);
-            MessageBoxCon3Preg();
-            //bool encuentraDecl = false;
-            Code.CreateMetadata(curMethod);  //genera il
-                                             //Declaraciones  por ahora solo decl de var, luego habria q agregar const y clases
-            while (la != Token.LBRACE && la != Token.EOF)
-            //void Main()==> int x,i; {val = new Table;....}
-            {
-                if (la == Token.IDENT)
-                {
-                    //encuentraDecl = true;
-                    Code.Colorear("latoken"); //colorea "int"  en int i; 
-                                              //Infiere la 2° opcion de PosDeclars   aaaaaaaa
-                    System.Windows.Forms.TreeNode declaration = new System.Windows.Forms.TreeNode("Declaration");
-                    posDeclars.Nodes.Add(declaration);
-                    posDeclars.ExpandAll();
-                    MessageBoxCon3Preg();
-                    Code.seleccLaProdEnLaGram(2);
-                    System.Windows.Forms.TreeNode varDecl = new System.Windows.Forms.TreeNode("VarDecl");
-                    declaration.Nodes.Add(varDecl);
-                    declaration.ExpandAll();
-                    MessageBoxCon3Preg();
-                    Code.seleccLaProdEnLaGram(6);
-                    VardDecl(Symbol.Kinds.Local, varDecl); // int x,i; en MethodDecl()  con int ya consumido
-                }
-                else
-                {
-                    token = laToken;
-                    Errors.Error("espero una declaracion de variable");
-                }
-            }
-            //Termina Vardecl.
-            Code.seleccLaProdEnLaGram(2);
+            Check(Token.RBRACE);
+            Code.seleccLaProdEnLaGram(16);
+            block.Nodes.Add("'}'");
+            MessageBoxCon3Preg(block);
+            Code.Colorear("token");
+        }//Fin Block
 
-            if (cantVarLocales > 0)
-            {
-                string instrParaVarsLocs = ".locals init(int32 V_0";
-                for (int i = 1; i < cantVarLocales; i++)
-                {
-                    instrParaVarsLocs = instrParaVarsLocs + "," + "\n          int32 V_" + i.ToString(); // +"  ";
-                }
-                instrParaVarsLocs = instrParaVarsLocs + ")";
-                Code.cargaInstr(instrParaVarsLocs);
-
-            }
-            Code.seleccLaProdEnLaGram(1);
-            MessageBoxCon3Preg();
-            System.Windows.Forms.TreeNode posDeclarsAux = new System.Windows.Forms.TreeNode("PosDeclars");
-            posDeclarsAux.Nodes.Add(".");
-            posDeclarsAux.ExpandAll();
-            posDeclars.Nodes.Add(posDeclarsAux);
-            Code.Colorear("latoken");  //"{"
-            MessageBoxCon3Preg();
-            Code.seleccLaProdEnLaGram(8);
-            MessageBoxCon3Preg();
-
-
-
-
-
-
-
-
-            /////// Agrega 'StatementsOpc' al arbol
+        /*private static void sentencias(System.Windows.Forms.TreeNode block)
+        {
             System.Windows.Forms.TreeNode statementsopc = new System.Windows.Forms.TreeNode("StatementsOpc");
             block.Nodes.Add(statementsopc);
             block.ExpandAll();
@@ -1370,7 +1338,10 @@ namespace at.jku.ssw.cc
                         Console.WriteLine(".......Comienza statement nro:");
                         Console.Write(ii); Console.WriteLine("->" + laToken.str);
                     }
-
+                    /*
+                     * Statemen(Sentencia) -> Recibe el nodo del arbol que se esta generando para continuar con la rama
+                     * de demostracion de las variables en el panel ubicado a la derecha de nuestro compilador
+                     * dentro de él, se hacen las validaciones correspondientes a una sentencia de codigo
                     Statement(statement);  //dentro de block()
 
                 }//Fin if 
@@ -1383,13 +1354,92 @@ namespace at.jku.ssw.cc
                 ii++;
                 Code.seleccLaProdEnLaGram(17);
             }//Fin while
-            MessageBoxCon3Preg();
-            Check(Token.RBRACE);
-            Code.seleccLaProdEnLaGram(16);
-            block.Nodes.Add("'}'");
-            MessageBoxCon3Preg(block);
-            Code.Colorear("token");
-        }//Fin Block
+        }*/
+
+        private static void declaracionesSentenciasOpcionales(TreeNode block)
+        {
+
+            TreeNode declaracionSentencia = new TreeNode("DeclaracionOSentenciaOp");
+            block.Nodes.Add(declaracionSentencia);  //Cuelga un TreeNode porque PosDeclars es No Terminal
+            Parser.MessageBoxCon3Preg();
+            Code.seleccLaProdEnLaGram(1);  //"PosDeclars = . | Declaration PosDeclars."; //Posicionarnos en la gramatica correspondiente
+            Parser.MessageBoxCon3Preg();
+            bool existeDeclaracion_Sentencia = false;
+
+            while (la != Token.RBRACE && la != Token.EOF)
+            {
+
+                Code.Colorear("latoken");
+                Code.seleccLaProdEnLaGram(2);
+                TreeNode declaracionOSentencia = new TreeNode("DeclaracionOSentencia: Declaracion | Sentencia");
+                declaracionSentencia.Nodes.Add(declaracionOSentencia);
+                existeDeclaracion_Sentencia = true;
+                switch (la)
+                {
+                    case Token.IDENT:
+                        if (laToken.str.Equals("int") || laToken.str.Equals("char"))
+                        {
+                            Console.WriteLine(la);
+                            //declaracionDeVariable()
+                            Code.cargaProgDeLaGram("Declaration = VarDecl.");
+                            TreeNode hijo1 = new TreeNode("Declaration = VarDecl.");
+                            declaracionOSentencia.Nodes.Add(hijo1);
+                            Code.seleccLaProdEnLaGram(6);
+                            Code.cargaProgDeLaGram("VarDecl = Type  ident IdentifiersOpc ';'.");
+                            Code.seleccLaProdEnLaGram(12);
+                            Code.cargaProgDeLaGram("Type = ident LbrackOpc."); //ya pintó el ident (por ej "int en int ii);
+                            VardDecl(Symbol.Kinds.Global, hijo1); //En program  //Table val;
+                        } else
+                        {
+                            Code.Colorear("latoken");
+                            TreeNode sentencia = new TreeNode("Statement");
+                            declaracionOSentencia.Nodes.Add(sentencia);
+                            declaracionOSentencia.ExpandAll();
+                            MessageBoxCon3Preg(sentencia);
+                            Code.seleccLaProdEnLaGram(18);
+                            /*
+                             * Statemen(Sentencia) -> Recibe el nodo del arbol que se esta generando para continuar con la rama
+                             * de demostracion de las variables en el panel ubicado a la derecha de nuestro compilador
+                             * dentro de él, se hacen las validaciones correspondientes a una sentencia de codigo
+                             */
+                            Statement(sentencia);  //dentro de block()
+                        }
+                        existeDeclaracion_Sentencia = true;
+                        break;
+                    case Token.IF:
+                    case Token.WHILE:
+                    case Token.BREAK:
+                    case Token.RETURN:
+                    case Token.READ:
+                    case Token.WRITE:
+                    case Token.WRITELN:
+                    case Token.LBRACE:
+                    case Token.SEMICOLON:
+                        Code.Colorear("latoken");
+                        TreeNode statement = new TreeNode("Statement");
+                        declaracionOSentencia.Nodes.Add(statement);
+                        declaracionOSentencia.ExpandAll();
+                        MessageBoxCon3Preg(statement);
+                        Code.seleccLaProdEnLaGram(18);
+                        /*
+                         * Statemen(Sentencia) -> Recibe el nodo del arbol que se esta generando para continuar con la rama
+                         * de demostracion de las variables en el panel ubicado a la derecha de nuestro compilador
+                         * dentro de él, se hacen las validaciones correspondientes a una sentencia de codigo
+                         */
+                        Statement(statement);  //dentro de block()
+                        break;
+                }
+                // sentencias(block);
+
+            }
+            Code.Colorear("latoken");
+            if (!existeDeclaracion_Sentencia)
+            {
+                declaracionSentencia.Nodes.Add(".");
+                declaracionSentencia.ExpandAll(); //Visualiza (Expande) posDeclars
+                Parser.MessageBoxCon3Preg();
+            }
+        }
 
         static void ActPars()
         {
